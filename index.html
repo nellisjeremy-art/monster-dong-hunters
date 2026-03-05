@@ -116,15 +116,75 @@
   .last-updated span { color: var(--accent2); }
   .dupe-warning { color: var(--accent); font-family: 'Barlow Condensed', sans-serif; font-size: 14px; margin-bottom: 14px; min-height: 20px; }
   @media (max-width:600px) { .player-card { grid-template-columns: 30px 1fr auto; gap: 10px; padding: 12px 14px; } .hr-number { font-size: 38px; } .player-name { font-size: 18px; } h1 { font-size: 52px; } }
+
+  /* JSONBIN MODAL */
+  .jb-backdrop { position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px; }
+  .jb-backdrop.hidden { display:none; }
+  .jb-modal { background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:34px 30px;max-width:520px;width:100%;box-shadow:0 0 80px rgba(255,140,0,0.12); }
+  .jb-icon { font-size:40px;margin-bottom:12px; }
+  .jb-title { font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:.04em;background:linear-gradient(135deg,#fff 40%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px; }
+  .jb-desc { font-family:'Barlow Condensed',sans-serif;font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:22px; }
+  .jb-desc a { color:var(--accent2);text-decoration:none; }
+  .jb-desc a:hover { text-decoration:underline; }
+  .jb-steps { background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px; }
+  .jb-step { font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--muted);padding:4px 0;letter-spacing:.02em;line-height:1.5; }
+  .jb-step strong { color:var(--text); }
+  .jb-step code { background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:4px;font-size:13px;color:var(--accent2); }
+  .jb-field { display:flex;flex-direction:column;gap:6px;margin-bottom:12px; }
+  .jb-field label { font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase; }
+  .jb-field input { width:100%;font-size:14px;padding:10px 13px;font-family:'Barlow',monospace; }
+  .jb-field input:focus { border-color:var(--accent2); }
+  .jb-err { color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:13px;min-height:18px;margin-bottom:10px; }
+  .jb-footer { display:flex;gap:10px;flex-wrap:wrap;align-items:center; }
+  .jb-note { font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5; }
+  /* cloud indicator */
+  .cloud-indicator { display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;padding:4px 11px;border:1px solid var(--border);border-radius:20px;transition:border-color .2s;margin-top:10px; }
+  .cloud-indicator:hover { border-color:var(--accent2);color:var(--text); }
+  .cloud-dot { width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0; }
+  .cloud-dot.ok { background:var(--green); }
+  .cloud-dot.err { background:var(--accent); }
 </style>
 </head>
 <body>
+
+  <!-- JSONBIN CONFIG MODAL -->
+  <div class="jb-backdrop hidden" id="jbModal">
+    <div class="jb-modal">
+      <div class="jb-icon">☁️</div>
+      <div class="jb-title">Connect Cloud Sync</div>
+      <div class="jb-desc">
+        To share the draft setup across devices, the app uses <a href="https://jsonbin.io" target="_blank">JSONBin.io</a> — a free cloud storage service. Takes 2 minutes to set up.
+      </div>
+      <div class="jb-steps">
+        <div class="jb-step">1. Go to <a href="https://jsonbin.io" target="_blank" style="color:var(--accent2)">jsonbin.io</a> → <strong>Sign up free</strong></div>
+        <div class="jb-step">2. In the dashboard, click <strong>API Keys</strong> → copy your <code>Master Key</code></div>
+        <div class="jb-step">3. Paste it below and click Save — the app creates a bin automatically</div>
+        <div class="jb-step">4. Share your GitHub Pages link with your league — everyone sees the same data ✓</div>
+      </div>
+      <div class="jb-field">
+        <label>JSONBin Master Key</label>
+        <input type="password" id="jbKeyInput" placeholder="$2a$10$..." autocomplete="off" onkeydown="if(event.key==='Enter')jbSave()" />
+      </div>
+      <div class="jb-field" id="jbBinIdField" style="display:none">
+        <label>Bin ID <span style="color:var(--muted);font-size:11px">(auto-filled after first save)</span></label>
+        <input type="text" id="jbBinInput" placeholder="auto-created on first save" />
+      </div>
+      <div class="jb-err" id="jbErr"></div>
+      <div class="jb-footer">
+        <button class="primary" onclick="jbSave()">💾 Save & Sync</button>
+        <button onclick="jbClose()">Skip — use local only</button>
+      </div>
+      <div class="jb-note">🔒 Your key is stored only in <em>your</em> browser. Share the Master Key with your league commissioner so they can update the draft too, or keep it to yourself so only you can edit.</div>
+    </div>
+  </div>
+
 <div class="container">
 
   <header>
     <div class="logo-eyebrow">⚾ Fantasy Home Run League</div>
     <h1>Monster Dong<br>Hunters</h1>
     <div class="subtitle">Live MLB data · Free · No login required</div>
+    <div style="display:flex;justify-content:center;margin-top:10px"><div class="cloud-indicator" onclick="jbShowModal(true)" id="cloudIndicator"><div class="cloud-dot" id="cloudDot"></div><span id="cloudLabel">Cloud sync: off</span></div></div>
   </header>
 
   <div class="status-bar">
@@ -203,11 +263,129 @@ function loadState() {
 function saveState() { localStorage.setItem('mdh_v3', JSON.stringify(state)); }
 
 let state = loadState() || {
-  players: Array.from({length:10}, (_,i) => ({name:`Hunter ${i+1}`, teams:["",""," "]})),
+  players: Array.from({length:10}, (_,i) => ({name:`Hunter ${i+1}`, teams:['','','']})),
   currentMonth: new Date().getMonth(),
-  hrCache: {},   // "TeamName|monthIdx|year" -> number
+  hrCache: {},
   lastSync: null
 };
+
+// ── JSONBIN CLOUD SYNC ────────────────────────────────────────────────────────
+const JB_API = 'https://api.jsonbin.io/v3/b';
+
+function jbKey()   { return localStorage.getItem('mdh_jbkey') || ''; }
+function jbBinId() { return localStorage.getItem('mdh_jbbin') || ''; }
+
+function jbShowModal(canSkip) {
+  document.getElementById('jbModal').classList.remove('hidden');
+  document.getElementById('jbKeyInput').value = jbKey();
+  document.getElementById('jbBinInput').value = jbBinId();
+  document.getElementById('jbBinIdField').style.display = jbBinId() ? '' : 'none';
+  document.getElementById('jbErr').textContent = '';
+  if (!canSkip) document.querySelector('#jbModal button:last-of-type').style.display = 'none';
+  else document.querySelector('#jbModal button:last-of-type').style.display = '';
+  setTimeout(() => document.getElementById('jbKeyInput').focus(), 100);
+}
+
+function jbClose() {
+  document.getElementById('jbModal').classList.add('hidden');
+}
+
+async function jbSave() {
+  const key = document.getElementById('jbKeyInput').value.trim();
+  const manualBin = document.getElementById('jbBinInput').value.trim();
+  const errEl = document.getElementById('jbErr');
+  if (!key) { errEl.textContent = '⚠️ Please enter your Master Key.'; return; }
+
+  localStorage.setItem('mdh_jbkey', key);
+  if (manualBin) localStorage.setItem('mdh_jbbin', manualBin);
+
+  // Try to load existing bin or create one
+  errEl.textContent = 'Connecting…';
+  try {
+    const binId = jbBinId();
+    if (binId) {
+      await jbRead(); // test read
+    } else {
+      await jbCreateBin();
+    }
+    errEl.textContent = '';
+    jbClose();
+    updateCloudIndicator();
+    await jbPull(); // load draft from cloud
+    renderLeaderboard();
+    renderSetup();
+  } catch(e) {
+    errEl.textContent = '⚠️ ' + (e.message || 'Could not connect. Check your key.');
+  }
+}
+
+async function jbCreateBin() {
+  const payload = { players: state.players, currentMonth: state.currentMonth };
+  const res = await fetch(JB_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey(), 'X-Bin-Name': 'MonsterDongHunters', 'X-Bin-Private': 'true' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`JSONBin error ${res.status} — check your Master Key`);
+  const data = await res.json();
+  const binId = data.metadata?.id;
+  if (!binId) throw new Error('No bin ID returned');
+  localStorage.setItem('mdh_jbbin', binId);
+  document.getElementById('jbBinInput').value = binId;
+  document.getElementById('jbBinIdField').style.display = '';
+}
+
+async function jbRead() {
+  const res = await fetch(`${JB_API}/${jbBinId()}/latest`, {
+    headers: { 'X-Master-Key': jbKey() }
+  });
+  if (!res.ok) throw new Error(`JSONBin read error ${res.status}`);
+  const data = await res.json();
+  return data.record;
+}
+
+async function jbWrite(payload) {
+  if (!jbKey() || !jbBinId()) return;
+  const res = await fetch(`${JB_API}/${jbBinId()}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`JSONBin write error ${res.status}`);
+}
+
+async function jbPull() {
+  if (!jbKey() || !jbBinId()) return;
+  try {
+    const record = await jbRead();
+    if (record?.players) {
+      state.players = record.players;
+      if (record.currentMonth !== undefined) state.currentMonth = record.currentMonth;
+      saveState();
+    }
+  } catch(e) { console.warn('jbPull failed:', e.message); }
+}
+
+async function jbPush() {
+  try {
+    await jbWrite({ players: state.players, currentMonth: state.currentMonth });
+  } catch(e) { console.warn('jbPush failed:', e.message); }
+}
+
+function updateCloudIndicator() {
+  const dot = document.getElementById('cloudDot');
+  const lbl = document.getElementById('cloudLabel');
+  if (jbKey() && jbBinId()) {
+    dot.className = 'cloud-dot ok';
+    lbl.textContent = 'Cloud sync: on ✓';
+  } else if (jbKey()) {
+    dot.className = 'cloud-dot ok';
+    lbl.textContent = 'Cloud sync: setting up…';
+  } else {
+    dot.className = 'cloud-dot err';
+    lbl.textContent = 'Cloud sync: off — click to enable';
+  }
+}
 
 // ── DATE HELPERS ─────────────────────────────────────────────────────────────
 function monthDateRange(m) {
@@ -224,17 +402,32 @@ function cacheKey(teamName, month) {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
   const opts = MONTHS.map((m,i)=>`<option value="${i}">${m} ${YEAR}</option>`).join('');
   document.getElementById('monthSelect').innerHTML = opts;
   document.getElementById('setupMonthSelect').innerHTML = opts;
   document.getElementById('monthSelect').value = state.currentMonth;
   document.getElementById('setupMonthSelect').value = state.currentMonth;
   updateDateRangeInfo();
+  updateCloudIndicator();
   renderLeaderboard();
+
+  // Pull latest draft from cloud if configured
+  if (jbKey() && jbBinId()) {
+    setSyncStatus('syncing', 'Loading draft from cloud…');
+    await jbPull();
+    document.getElementById('monthSelect').value = state.currentMonth;
+    document.getElementById('setupMonthSelect').value = state.currentMonth;
+    updateDateRangeInfo();
+    renderLeaderboard();
+  }
+
   const hasTeams = state.players.some(p => p.teams && p.teams.some(t => t && t.trim()));
-  if (hasTeams) setTimeout(fetchAllHRs, 400);
-  else setSyncStatus('', 'Set up your draft to begin');
+  if (hasTeams) setTimeout(fetchAllHRs, 300);
+  else {
+    setSyncStatus('', 'Set up your draft to begin');
+    if (!jbKey()) setTimeout(() => jbShowModal(false), 600);
+  }
 }
 
 function updateDateRangeInfo() {
@@ -463,6 +656,7 @@ function saveSetup() {
     teams: [0,1,2].map(j=>document.getElementById(`pt-${i}-${j}`)?.value||'')
   }));
   saveState();
+  jbPush().then(() => updateCloudIndicator());
   showTab('leaderboard', document.querySelector('.tab'));
   setTimeout(fetchAllHRs, 150);
 }
