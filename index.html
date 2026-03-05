@@ -184,7 +184,7 @@
     <div class="logo-eyebrow">⚾ Fantasy Home Run League</div>
     <h1>Monster Dong<br>Hunters</h1>
     <div class="subtitle">Live MLB data · Free · No login required</div>
-    <div style="display:flex;justify-content:center;margin-top:10px"><div class="cloud-indicator" onclick="jbShowModal(true)" id="cloudIndicator"><div class="cloud-dot" id="cloudDot"></div><span id="cloudLabel">Cloud sync: off</span></div></div>
+    <div style="display:flex;justify-content:center;margin-top:10px"><div class="cloud-indicator" onclick="jbShowModal()" id="cloudIndicator"><div class="cloud-dot" id="cloudDot"></div><span id="cloudLabel">Cloud sync: off</span></div></div>
   </header>
 
   <div class="status-bar">
@@ -275,14 +275,12 @@ const JB_API = 'https://api.jsonbin.io/v3/b';
 function jbKey()   { return localStorage.getItem('mdh_jbkey') || ''; }
 function jbBinId() { return localStorage.getItem('mdh_jbbin') || ''; }
 
-function jbShowModal(canSkip) {
+function jbShowModal() {
   document.getElementById('jbModal').classList.remove('hidden');
   document.getElementById('jbKeyInput').value = jbKey();
   document.getElementById('jbBinInput').value = jbBinId();
   document.getElementById('jbBinIdField').style.display = jbBinId() ? '' : 'none';
   document.getElementById('jbErr').textContent = '';
-  if (!canSkip) document.querySelector('#jbModal button:last-of-type').style.display = 'none';
-  else document.querySelector('#jbModal button:last-of-type').style.display = '';
   setTimeout(() => document.getElementById('jbKeyInput').focus(), 100);
 }
 
@@ -426,7 +424,6 @@ async function init() {
   if (hasTeams) setTimeout(fetchAllHRs, 300);
   else {
     setSyncStatus('', 'Set up your draft to begin');
-    if (!jbKey()) setTimeout(() => jbShowModal(false), 600);
   }
 }
 
