@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monster Dong Hunters 🏟️</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #ff3c3c;
+    --accent2: #ff8c00;
+    --gold: #ffd700;
+    --text: #f0f0f5;
+    --muted: #8888aa;
+    --green: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(255,60,60,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255,140,0,0.06) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+
+  header { text-align: center; padding: 36px 20px 26px; border-bottom: 1px solid var(--border); position: relative; }
+  header::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+  }
+  .logo-eyebrow { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 10vw, 96px); line-height: 0.9;
+    background: linear-gradient(135deg, #ffffff 30%, var(--accent2) 70%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    filter: drop-shadow(0 0 40px rgba(255,140,0,0.25));
+  }
+  .subtitle { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; color: var(--muted); letter-spacing: 0.1em; margin-top: 8px; }
+
+  .status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap;
+  }
+  .status-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .month-badge { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.05em; color: var(--gold); }
+  .sync-status { display: flex; align-items: center; gap: 7px; font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 0.05em; color: var(--muted); }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .sync-dot.syncing { background: var(--accent2); animation: pulse 1s ease infinite; }
+  .sync-dot.ok { background: var(--green); }
+  .sync-dot.error { background: var(--accent); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-right { display: flex; gap: 8px; align-items: center; }
+  select, button, input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Barlow Condensed', sans-serif; font-size: 15px; border-radius: 6px; padding: 8px 14px; cursor: pointer; transition: all 0.2s; outline: none; }
+  select:hover, button:hover { border-color: var(--accent2); }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-weight: 700; letter-spacing: 0.05em; }
+  button.primary:hover { opacity: 0.85; }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: 16px 0 26px; }
+  .tab { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 0.08em; padding: 12px 22px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .leaderboard { display: flex; flex-direction: column; gap: 10px; }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 14px; transition: border-color 0.2s, transform 0.15s; }
+  .player-card:hover { border-color: rgba(255,140,0,0.4); transform: translateX(3px); }
+  .player-card.rank-1 { border-color: var(--gold); background: linear-gradient(135deg, var(--surface), rgba(255,215,0,0.04)); }
+  .player-card.rank-2 { border-color: #a0a0b0; }
+  .player-card.rank-3 { border-color: #b07030; }
+  .rank { font-family: 'Bebas Neue', sans-serif; font-size: 30px; text-align: center; color: var(--muted); }
+  .rank-1 .rank { color: var(--gold); filter: drop-shadow(0 0 8px rgba(255,215,0,0.4)); }
+  .rank-2 .rank { color: #c0c0c0; }
+  .rank-3 .rank { color: #cd7f32; }
+  .player-info { min-width: 0; }
+  .player-name { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-teams { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .team-chip { font-size: 12px; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.05em; padding: 3px 10px; border-radius: 100px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .team-chip .chip-hr { color: var(--accent2); font-weight: 700; font-size: 13px; }
+  .player-total { text-align: right; }
+  .hr-number { font-family: 'Bebas Neue', sans-serif; font-size: 52px; line-height: 1; color: var(--text); }
+  .rank-1 .hr-number { color: var(--gold); }
+  .hr-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 0.15em; color: var(--muted); text-align: right; }
+  .bar-row { grid-column: 1/-1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.6s ease; }
+  .rank-1 .bar-fill { background: linear-gradient(90deg, var(--gold), #ff9900); }
+
+  .setup-intro { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .setup-intro p { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; color: var(--muted); letter-spacing: 0.03em; }
+  .setup-intro strong { color: var(--text); }
+  .setup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .setup-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .setup-num { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 0.1em; color: var(--accent); background: rgba(255,60,60,0.1); padding: 2px 8px; border-radius: 4px; }
+  .setup-card input[type="text"] { width: 100%; margin-bottom: 10px; padding: 9px 12px; font-size: 15px; }
+  .team-selects { display: flex; flex-direction: column; gap: 7px; }
+  .team-selects select { font-size: 14px; padding: 7px 12px; width: 100%; }
+
+  .month-control { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .month-control label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .date-range-info { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; color: var(--muted); letter-spacing: 0.03em; margin-left: auto; }
+  .date-range-info span { color: var(--accent2); }
+
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: 18px; letter-spacing: 0.05em; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+  .error-banner { background: rgba(255,60,60,0.1); border: 1px solid rgba(255,60,60,0.3); border-radius: 8px; padding: 12px 16px; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; color: #ff8888; margin-bottom: 16px; display: none; }
+  .last-updated { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; color: var(--muted); text-align: center; padding: 16px 0 24px; letter-spacing: 0.05em; }
+  .last-updated span { color: var(--accent2); }
+  .dupe-warning { color: var(--accent); font-family: 'Barlow Condensed', sans-serif; font-size: 14px; margin-bottom: 14px; min-height: 20px; }
+  @media (max-width:600px) { .player-card { grid-template-columns: 30px 1fr auto; gap: 10px; padding: 12px 14px; } .hr-number { font-size: 38px; } .player-name { font-size: 18px; } h1 { font-size: 52px; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-eyebrow">⚾ Fantasy Home Run League</div>
+    <h1>Monster Dong<br>Hunters</h1>
+    <div class="subtitle">Live MLB data · Free · No login required</div>
+  </header>
+
+  <div class="status-bar">
+    <div class="status-left">
+      <div class="month-badge" id="monthBadge">—</div>
+      <div class="sync-status">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncText">Not synced</span>
+      </div>
+    </div>
+    <div class="status-right">
+      <select id="monthSelect" onchange="onMonthChange()"></select>
+      <button class="primary" id="refreshBtn" onclick="fetchAllHRs()">⚾ Refresh Scores</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('leaderboard',this)">🏆 Leaderboard</button>
+    <button class="tab" onclick="showTab('setup',this)">⚙️ Draft Setup</button>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="tab-leaderboard">
+    <div class="error-banner" id="errorBanner"></div>
+    <div class="leaderboard" id="leaderboardList"></div>
+    <div class="last-updated" id="lastUpdated"></div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="tab-setup" style="display:none">
+    <div class="setup-intro">
+      <div>
+        <p><strong>Draft Setup</strong> — Give each hunter a name and assign them 3 MLB teams.</p>
+        <p>Each team can only be claimed once. Scores update automatically from live MLB data.</p>
+      </div>
+      <button class="primary" onclick="saveSetup()">💾 Save & Sync Scores</button>
+    </div>
+    <div class="month-control">
+      <label>Competition Month</label>
+      <select id="setupMonthSelect" onchange="onSetupMonthChange()"></select>
+      <div class="date-range-info" id="dateRangeInfo"></div>
+    </div>
+    <div class="dupe-warning" id="dupeWarning"></div>
+    <div class="setup-grid" id="setupGrid"></div>
+  </div>
+
+</div>
+
+<script>
+const MLB_TEAMS = [
+  {name:"Arizona Diamondbacks",id:109,abbr:"ARI"},{name:"Atlanta Braves",id:144,abbr:"ATL"},
+  {name:"Baltimore Orioles",id:110,abbr:"BAL"},{name:"Boston Red Sox",id:111,abbr:"BOS"},
+  {name:"Chicago Cubs",id:112,abbr:"CHC"},{name:"Chicago White Sox",id:145,abbr:"CWS"},
+  {name:"Cincinnati Reds",id:113,abbr:"CIN"},{name:"Cleveland Guardians",id:114,abbr:"CLE"},
+  {name:"Colorado Rockies",id:115,abbr:"COL"},{name:"Detroit Tigers",id:116,abbr:"DET"},
+  {name:"Houston Astros",id:117,abbr:"HOU"},{name:"Kansas City Royals",id:118,abbr:"KC"},
+  {name:"Los Angeles Angels",id:108,abbr:"LAA"},{name:"Los Angeles Dodgers",id:119,abbr:"LAD"},
+  {name:"Miami Marlins",id:146,abbr:"MIA"},{name:"Milwaukee Brewers",id:158,abbr:"MIL"},
+  {name:"Minnesota Twins",id:142,abbr:"MIN"},{name:"New York Mets",id:121,abbr:"NYM"},
+  {name:"New York Yankees",id:147,abbr:"NYY"},{name:"Athletics",id:133,abbr:"OAK"},
+  {name:"Philadelphia Phillies",id:143,abbr:"PHI"},{name:"Pittsburgh Pirates",id:134,abbr:"PIT"},
+  {name:"San Diego Padres",id:135,abbr:"SD"},{name:"San Francisco Giants",id:137,abbr:"SF"},
+  {name:"Seattle Mariners",id:136,abbr:"SEA"},{name:"St. Louis Cardinals",id:138,abbr:"STL"},
+  {name:"Tampa Bay Rays",id:139,abbr:"TB"},{name:"Texas Rangers",id:140,abbr:"TEX"},
+  {name:"Toronto Blue Jays",id:141,abbr:"TOR"},{name:"Washington Nationals",id:120,abbr:"WSH"}
+];
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const YEAR = new Date().getFullYear();
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+function loadState() {
+  try { const s = localStorage.getItem('mdh_v3'); return s ? JSON.parse(s) : null; }
+  catch(e) { return null; }
+}
+function saveState() { localStorage.setItem('mdh_v3', JSON.stringify(state)); }
+
+let state = loadState() || {
+  players: Array.from({length:10}, (_,i) => ({name:`Hunter ${i+1}`, teams:["",""," "]})),
+  currentMonth: new Date().getMonth(),
+  hrCache: {},   // "TeamName|monthIdx|year" -> number
+  lastSync: null
+};
+
+// ── DATE HELPERS ─────────────────────────────────────────────────────────────
+function monthDateRange(m) {
+  const start = new Date(YEAR, m, 1);
+  const endOfMonth = new Date(YEAR, m + 1, 0);
+  const today = new Date();
+  const end = endOfMonth > today ? today : endOfMonth;
+  const fmt = d => d.toISOString().split('T')[0];
+  return {start: fmt(start), end: fmt(end)};
+}
+
+function cacheKey(teamName, month) {
+  return `${teamName}|${month}|${YEAR}`;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const opts = MONTHS.map((m,i)=>`<option value="${i}">${m} ${YEAR}</option>`).join('');
+  document.getElementById('monthSelect').innerHTML = opts;
+  document.getElementById('setupMonthSelect').innerHTML = opts;
+  document.getElementById('monthSelect').value = state.currentMonth;
+  document.getElementById('setupMonthSelect').value = state.currentMonth;
+  updateDateRangeInfo();
+  renderLeaderboard();
+  const hasTeams = state.players.some(p => p.teams && p.teams.some(t => t && t.trim()));
+  if (hasTeams) setTimeout(fetchAllHRs, 400);
+  else setSyncStatus('', 'Set up your draft to begin');
+}
+
+function updateDateRangeInfo() {
+  const {start, end} = monthDateRange(state.currentMonth);
+  document.getElementById('dateRangeInfo').innerHTML = `Range: <span>${start}</span> → <span>${end}</span>`;
+  document.getElementById('monthBadge').textContent = MONTHS[state.currentMonth] + ' ' + YEAR;
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  ['leaderboard','setup'].forEach(t => document.getElementById('tab-'+t).style.display='none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+id).style.display = '';
+  btn.classList.add('active');
+  if (id === 'leaderboard') renderLeaderboard();
+  if (id === 'setup') renderSetup();
+}
+
+function onMonthChange() {
+  state.currentMonth = parseInt(document.getElementById('monthSelect').value);
+  document.getElementById('setupMonthSelect').value = state.currentMonth;
+  saveState(); updateDateRangeInfo(); renderLeaderboard(); fetchAllHRs();
+}
+
+function onSetupMonthChange() {
+  state.currentMonth = parseInt(document.getElementById('setupMonthSelect').value);
+  document.getElementById('monthSelect').value = state.currentMonth;
+  saveState(); updateDateRangeInfo();
+}
+
+// ── FETCH HR DATA (free, no API key) ────────────────────────────────────────
+// MLB Stats API is free & public. We use allorigins.win as a CORS proxy so it
+// works from a browser / GitHub Pages without any backend or API key.
+
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => url  // direct (works if MLB ever adds CORS headers)
+];
+
+async function mlbFetch(url) {
+  let lastErr;
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(proxy(url), {signal: AbortSignal.timeout(8000)});
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr || new Error('All proxies failed');
+}
+
+async function fetchTeamHRs(teamId, startDate, endDate) {
+  const url = `https://statsapi.mlb.com/api/v1/teams/${teamId}/stats?stats=byDateRange&group=hitting&season=${YEAR}&startDate=${startDate}&endDate=${endDate}&sportId=1`;
+  const data = await mlbFetch(url);
+  // Navigate: data.stats[0].splits[0].stat.homeRuns
+  const splits = data?.stats?.[0]?.splits;
+  if (!splits || splits.length === 0) return 0;
+  return parseInt(splits[0]?.stat?.homeRuns ?? 0, 10);
+}
+
+async function fetchAllHRs() {
+  const teams = new Set();
+  state.players.forEach(p => (p.teams||[]).forEach(t => { if (t && t.trim()) teams.add(t.trim()); }));
+
+  if (teams.size === 0) {
+    setSyncStatus('error', 'No teams in draft — go to Setup');
+    return;
+  }
+
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Fetching…';
+  setSyncStatus('syncing', 'Fetching live MLB data…');
+  hideError();
+
+  const {start, end} = monthDateRange(state.currentMonth);
+  const teamNames = [...teams];
+  let successCount = 0;
+  let errors = [];
+
+  await Promise.all(teamNames.map(async name => {
+    const team = MLB_TEAMS.find(t => t.name === name);
+    if (!team) return;
+    try {
+      const hrs = await fetchTeamHRs(team.id, start, end);
+      state.hrCache[cacheKey(name, state.currentMonth)] = hrs;
+      successCount++;
+    } catch(e) {
+      errors.push(name);
+      // Keep last cached value if available
+    }
+  }));
+
+  if (successCount === 0) {
+    setSyncStatus('error', 'Sync failed — showing cached data');
+    showError('⚠️ Could not reach MLB Stats API. Showing last cached scores — try again shortly.');
+  } else {
+    if (errors.length > 0) {
+      setSyncStatus('ok', `Partial sync — ${errors.length} team(s) used cache`);
+    } else {
+      setSyncStatus('ok', `Synced at ${new Date().toLocaleTimeString()}`);
+    }
+    state.lastSync = new Date().toISOString();
+    saveState();
+  }
+
+  renderLeaderboard();
+  btn.disabled = false;
+  btn.innerHTML = '⚾ Refresh Scores';
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+function renderLeaderboard() {
+  const el = document.getElementById('leaderboardList');
+  const hasSetup = state.players.some(p => p.teams && p.teams.some(t => t && t.trim()));
+
+  if (!hasSetup) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚙️</div>Head to <strong>Draft Setup</strong> to assign teams to your hunters!</div>`;
+    document.getElementById('lastUpdated').innerHTML = '';
+    return;
+  }
+
+  const ranked = state.players.map(p => {
+    let total = 0;
+    const breakdown = (p.teams||[]).map(name => {
+      const n = name && name.trim();
+      const hrs = n ? (state.hrCache[cacheKey(n, state.currentMonth)] ?? 0) : 0;
+      total += hrs;
+      return {name: n, hrs};
+    });
+    return {name: p.name, teams: breakdown, total};
+  }).sort((a,b) => b.total - a.total);
+
+  const maxHR = Math.max(...ranked.map(r=>r.total), 1);
+  const icons = ['👑','🥈','🥉'];
+
+  el.innerHTML = ranked.map((p,i) => {
+    const rc = ['rank-1','rank-2','rank-3'][i]||'';
+    const icon = i<3 ? icons[i] : i+1;
+    const pct = (p.total/maxHR*100).toFixed(1);
+    const chips = p.teams.filter(t=>t.name).map(t => {
+      const team = MLB_TEAMS.find(tm=>tm.name===t.name);
+      const abbr = team ? team.abbr : t.name.split(' ').pop().slice(0,3).toUpperCase();
+      return `<div class="team-chip">${abbr} <span class="chip-hr">${t.hrs}</span></div>`;
+    }).join('') || '<span style="font-size:12px;color:var(--muted)">No teams</span>';
+
+    return `<div class="player-card ${rc}">
+      <div class="rank">${icon}</div>
+      <div class="player-info">
+        <div class="player-name">${p.name}</div>
+        <div class="player-teams">${chips}</div>
+      </div>
+      <div class="player-total">
+        <div class="hr-number">${p.total}</div>
+        <div class="hr-label">HOME RUNS</div>
+      </div>
+      <div class="bar-row"><div class="bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  if (state.lastSync) {
+    const d = new Date(state.lastSync);
+    document.getElementById('lastUpdated').innerHTML =
+      `Last synced: <span>${d.toLocaleDateString()} at ${d.toLocaleTimeString()}</span>`;
+  }
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────────────────
+function renderSetup() {
+  const grid = document.getElementById('setupGrid');
+  const opts = MLB_TEAMS.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+  grid.innerHTML = state.players.map((p,i) => `
+    <div class="setup-card">
+      <div class="setup-card-header">
+        <span style="font-family:'Barlow Condensed';font-size:17px;font-weight:700">Hunter ${i+1}</span>
+        <span class="setup-num">#${i+1}</span>
+      </div>
+      <input type="text" placeholder="Hunter name" value="${p.name||''}" id="pname-${i}" />
+      <div class="team-selects">
+        ${[0,1,2].map(j=>`
+          <select id="pt-${i}-${j}" onchange="checkDupes()">
+            <option value="">— Team ${j+1} —</option>${opts}
+          </select>`).join('')}
+      </div>
+    </div>`).join('');
+
+  state.players.forEach((p,i)=>[0,1,2].forEach(j=>{
+    const el = document.getElementById(`pt-${i}-${j}`);
+    if (el && p.teams && p.teams[j] && p.teams[j].trim()) el.value = p.teams[j].trim();
+  }));
+  checkDupes();
+}
+
+function checkDupes() {
+  const picks = [];
+  for(let i=0;i<10;i++) for(let j=0;j<3;j++){
+    const el=document.getElementById(`pt-${i}-${j}`);
+    if(el&&el.value) picks.push({i,j,v:el.value});
+  }
+  const counts={};
+  picks.forEach(p=>{counts[p.v]=(counts[p.v]||0)+1;});
+  const dupes=Object.entries(counts).filter(([,c])=>c>1).map(([t])=>t);
+  for(let i=0;i<10;i++) for(let j=0;j<3;j++){
+    const el=document.getElementById(`pt-${i}-${j}`);
+    if(!el) continue;
+    el.style.borderColor = el.value&&dupes.includes(el.value) ? 'var(--accent)' : '';
+  }
+  const w=document.getElementById('dupeWarning');
+  w.innerHTML = dupes.length ? `⚠️ Duplicate picks (fix before saving): ${dupes.join(', ')}` : '';
+}
+
+function saveSetup() {
+  // Check dupes
+  const allPicks=[];
+  for(let i=0;i<10;i++) for(let j=0;j<3;j++){
+    const v=document.getElementById(`pt-${i}-${j}`)?.value;
+    if(v) allPicks.push(v);
+  }
+  const dupes=[...new Set(allPicks.filter((v,i,a)=>a.indexOf(v)!==i))];
+  if(dupes.length){ alert('Fix duplicate teams first:\n'+dupes.join(', ')); return; }
+
+  state.players = Array.from({length:10},(_,i)=>({
+    name: document.getElementById(`pname-${i}`)?.value?.trim()||`Hunter ${i+1}`,
+    teams: [0,1,2].map(j=>document.getElementById(`pt-${i}-${j}`)?.value||'')
+  }));
+  saveState();
+  showTab('leaderboard', document.querySelector('.tab'));
+  setTimeout(fetchAllHRs, 150);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setSyncStatus(s, msg) {
+  document.getElementById('syncDot').className = 'sync-dot ' + s;
+  document.getElementById('syncText').textContent = msg;
+}
+function showError(msg) { const b=document.getElementById('errorBanner'); b.style.display='block'; b.textContent=msg; }
+function hideError() { document.getElementById('errorBanner').style.display='none'; }
+
+init();
+</script>
+</body>
+</html>
