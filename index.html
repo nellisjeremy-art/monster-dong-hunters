@@ -281,8 +281,29 @@ const MLB_TEAMS = [
 
 const LOGO_URL = id => `https://www.mlbstatic.com/team-logos/${id}.svg`;
 
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const YEAR = new Date().getFullYear();
+
+// Scoring periods — March+April are combined since Opening Day is late March.
+// Each period has a label, and a start/end month index (inclusive).
+const PERIODS = [
+  { id: 0,  label: 'January',         months: [0] },
+  { id: 1,  label: 'February',        months: [1] },
+  { id: 2,  label: 'March + April',   months: [2, 3] },  // combined Opening Day period
+  { id: 4,  label: 'May',             months: [4] },
+  { id: 5,  label: 'June',            months: [5] },
+  { id: 6,  label: 'July',            months: [6] },
+  { id: 7,  label: 'August',          months: [7] },
+  { id: 8,  label: 'September',       months: [8] },
+  { id: 9,  label: 'October',         months: [9] },
+];
+
+// Find the default period based on current month
+function defaultPeriodId() {
+  const m = new Date().getMonth();
+  // March and April both map to period id 2
+  const match = PERIODS.find(p => p.months.includes(m));
+  return match ? match.id : PERIODS[PERIODS.length - 1].id;
+}
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 function loadState() {
@@ -292,11 +313,16 @@ function saveState() { localStorage.setItem('mdh_v4', JSON.stringify(state)); }
 
 let state = loadState() || {
   players: Array.from({length:10}, (_,i) => ({name:`Hunter ${i+1}`, teams:['','','']})),
-  currentMonth: new Date().getMonth(),
-  hrCache: {},       // "TeamName|month|year" -> count
-  dongCache: {},     // "TeamName|month|year" -> [{dist, player, date}, ...]
+  currentPeriod: defaultPeriodId(),
+  hrCache: {},       // "TeamName|periodId|year" -> count
+  dongCache: {},     // "dong|TeamName|periodId|year" -> [{dist, player, date}]
   lastSync: null
 };
+// Migrate old currentMonth -> currentPeriod
+if (state.currentMonth !== undefined && state.currentPeriod === undefined) {
+  state.currentPeriod = defaultPeriodId();
+  delete state.currentMonth;
+}
 
 // ── JSONBIN ───────────────────────────────────────────────────────────────────
 const HARDCODED_KEY    = '$2a$10$ir5nPJTd6oDBJAhB1ZmAtOZ5xNY6K6hnqV3IxJ26GNLbC184lSkeG';
@@ -339,7 +365,7 @@ async function jbCreateBin() {
   const res = await fetch(JB_API, {
     method:'POST',
     headers:{'Content-Type':'application/json','X-Master-Key':jbKey(),'X-Bin-Name':'MonsterDongHunters','X-Bin-Private':'true'},
-    body: JSON.stringify({players:state.players, currentMonth:state.currentMonth})
+    body: JSON.stringify({players:state.players, currentPeriod:state.currentPeriod})
   });
   if (!res.ok) throw new Error(`JSONBin error ${res.status} — check your Master Key`);
   const data = await res.json();
@@ -372,14 +398,15 @@ async function jbPull() {
     const record = await jbRead();
     if (record?.players) {
       state.players = record.players;
-      if (record.currentMonth !== undefined) state.currentMonth = record.currentMonth;
+      if (record.currentPeriod !== undefined) state.currentPeriod = record.currentPeriod;
+      else if (record.currentMonth !== undefined) state.currentPeriod = defaultPeriodId();
       saveState();
     }
   } catch(e) { console.warn('jbPull failed:', e.message); }
 }
 
 async function jbPush() {
-  try { await jbWrite({players:state.players, currentMonth:state.currentMonth}); }
+  try { await jbWrite({players:state.players, currentPeriod:state.currentPeriod}); }
   catch(e) { console.warn('jbPush failed:', e.message); }
 }
 
@@ -391,23 +418,27 @@ function updateCloudIndicator() {
 }
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────────
-function monthDateRange(m) {
-  const start = new Date(YEAR, m, 1);
-  const endOfMonth = new Date(YEAR, m+1, 0);
+function periodDateRange(periodId) {
+  const period = PERIODS.find(p => p.id === periodId);
+  if (!period) return {start: fmt(new Date()), end: fmt(new Date())};
+  const firstMonth = Math.min(...period.months);
+  const lastMonth  = Math.max(...period.months);
+  const start = new Date(YEAR, firstMonth, 1);
+  const endOfPeriod = new Date(YEAR, lastMonth + 1, 0);
   const today = new Date();
-  const end = endOfMonth > today ? today : endOfMonth;
+  const end = endOfPeriod > today ? today : endOfPeriod;
   return {start: fmt(start), end: fmt(end)};
 }
 function fmt(d) { return d.toISOString().split('T')[0]; }
-function hrCacheKey(name, month) { return `${name}|${month}|${YEAR}`; }
-function dongCacheKey(name, month) { return `dong|${name}|${month}|${YEAR}`; }
+function hrCacheKey(name, periodId) { return `${name}|${periodId}|${YEAR}`; }
+function dongCacheKey(name, periodId) { return `dong|${name}|${periodId}|${YEAR}`; }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const opts = MONTHS.map((m,i)=>`<option value="${i}">${m} ${YEAR}</option>`).join('');
+  const opts = PERIODS.map(p=>`<option value="${p.id}">${p.label} ${YEAR}</option>`).join('');
   ['monthSelect','setupMonthSelect'].forEach(id => {
     document.getElementById(id).innerHTML = opts;
-    document.getElementById(id).value = state.currentMonth;
+    document.getElementById(id).value = state.currentPeriod;
   });
   updateDateRangeInfo();
   updateCloudIndicator();
@@ -417,7 +448,7 @@ async function init() {
   if (jbKey() && jbBinId()) {
     setSyncStatus('syncing','Loading draft from cloud…');
     await jbPull();
-    ['monthSelect','setupMonthSelect'].forEach(id => document.getElementById(id).value = state.currentMonth);
+    ['monthSelect','setupMonthSelect'].forEach(id => document.getElementById(id).value = state.currentPeriod);
     updateDateRangeInfo();
     renderLeaderboard();
     renderLongestBoard();
@@ -429,9 +460,10 @@ async function init() {
 }
 
 function updateDateRangeInfo() {
-  const {start,end} = monthDateRange(state.currentMonth);
+  const {start,end} = periodDateRange(state.currentPeriod);
+  const period = PERIODS.find(p => p.id === state.currentPeriod);
   document.getElementById('dateRangeInfo').innerHTML = `Range: <span>${start}</span> → <span>${end}</span>`;
-  document.getElementById('monthBadge').textContent = MONTHS[state.currentMonth] + ' ' + YEAR;
+  document.getElementById('monthBadge').textContent = (period?.label || '—') + ' ' + YEAR;
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
@@ -446,13 +478,13 @@ function showTab(id, btn) {
 }
 
 function onMonthChange() {
-  state.currentMonth = parseInt(document.getElementById('monthSelect').value);
-  document.getElementById('setupMonthSelect').value = state.currentMonth;
+  state.currentPeriod = parseInt(document.getElementById('monthSelect').value);
+  document.getElementById('setupMonthSelect').value = state.currentPeriod;
   saveState(); updateDateRangeInfo(); renderLeaderboard(); renderLongestBoard(); fetchAllData();
 }
 function onSetupMonthChange() {
-  state.currentMonth = parseInt(document.getElementById('setupMonthSelect').value);
-  document.getElementById('monthSelect').value = state.currentMonth;
+  state.currentPeriod = parseInt(document.getElementById('setupMonthSelect').value);
+  document.getElementById('monthSelect').value = state.currentPeriod;
   saveState(); updateDateRangeInfo();
 }
 
@@ -526,7 +558,7 @@ async function fetchAllData() {
   setSyncStatus('syncing','Fetching live MLB data…');
   hideError();
 
-  const {start, end} = monthDateRange(state.currentMonth);
+  const {start, end} = periodDateRange(state.currentPeriod);
   const teamList = [...teams];
   let successCount = 0;
 
@@ -536,10 +568,10 @@ async function fetchAllData() {
     try {
       // Fetch HR count
       const hrs = await fetchTeamHRs(team.id, start, end);
-      state.hrCache[hrCacheKey(name, state.currentMonth)] = hrs;
+      state.hrCache[hrCacheKey(name, state.currentPeriod)] = hrs;
       // Fetch top 3 longest HRs
       const dongs = await fetchTeamLongestHRs(team.id, start, end);
-      state.dongCache[dongCacheKey(name, state.currentMonth)] = dongs;
+      state.dongCache[dongCacheKey(name, state.currentPeriod)] = dongs;
       successCount++;
     } catch(e) {
       console.warn(`Failed for ${name}:`, e.message);
@@ -574,7 +606,7 @@ function renderLeaderboard() {
     let total = 0;
     const breakdown = (p.teams||[]).map(name => {
       const n = name && name.trim();
-      const hrs = n ? (state.hrCache[hrCacheKey(n, state.currentMonth)] ?? 0) : 0;
+      const hrs = n ? (state.hrCache[hrCacheKey(n, state.currentPeriod)] ?? 0) : 0;
       total += hrs;
       return {name: n, hrs};
     });
@@ -584,7 +616,7 @@ function renderLeaderboard() {
       const n = name && name.trim();
       if (!n) return;
       const team = MLB_TEAMS.find(t => t.name === n);
-      const dongs = state.dongCache[dongCacheKey(n, state.currentMonth)] || [];
+      const dongs = state.dongCache[dongCacheKey(n, state.currentPeriod)] || [];
       dongs.forEach(d => allDongs.push({...d, teamId: team?.id, teamAbbr: team?.abbr}));
     });
     allDongs.sort((a,b) => b.dist - a.dist);
@@ -661,7 +693,7 @@ function renderLongestBoard() {
       const n = name && name.trim();
       if (!n) return;
       const team = MLB_TEAMS.find(t => t.name === n);
-      const dongs = state.dongCache[dongCacheKey(n, state.currentMonth)] || [];
+      const dongs = state.dongCache[dongCacheKey(n, state.currentPeriod)] || [];
       dongs.forEach(d => allDongs.push({...d, teamId: team?.id, teamName: n}));
     });
     allDongs.sort((a,b) => b.dist - a.dist);
