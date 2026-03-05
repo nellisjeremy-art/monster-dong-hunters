@@ -272,8 +272,14 @@ let state = loadState() || {
 // ── JSONBIN CLOUD SYNC ────────────────────────────────────────────────────────
 const JB_API = 'https://api.jsonbin.io/v3/b';
 
-function jbKey()   { return localStorage.getItem('mdh_jbkey') || ''; }
-function jbBinId() { return localStorage.getItem('mdh_jbbin') || ''; }
+// ── JSONBIN CREDENTIALS ───────────────────────────────────────────────────────
+// Fill these in once after setting up JSONBin, then re-upload to GitHub.
+// Your friends never need to touch anything — it just works for everyone.
+const HARDCODED_KEY    = '$2a$10$ir5nPJTd6oDBJAhB1ZmAtOZ5xNY6K6hnqV3IxJ26GNLbC184lSkeG';   // paste your JSONBin Master Key here
+const HARDCODED_BIN_ID = '69a8e92fd0ea881f40f01620';   // paste your Bin ID here (auto-filled after first save)
+
+function jbKey()   { return HARDCODED_KEY    || localStorage.getItem('mdh_jbkey')  || ''; }
+function jbBinId() { return HARDCODED_BIN_ID || localStorage.getItem('mdh_jbbin') || ''; }
 
 function jbShowModal() {
   document.getElementById('jbModal').classList.remove('hidden');
