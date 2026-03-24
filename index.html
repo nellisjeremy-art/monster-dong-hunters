@@ -162,6 +162,39 @@
     .lb-card { grid-template-columns:28px 1fr auto; }
     .lb-best { font-size:32px; }
   }
+
+  /* BLUESKY FEED */
+  .bsky-feed { display:flex; flex-direction:column; gap:12px; }
+  .bsky-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; flex-wrap:wrap; gap:10px; }
+  .bsky-profile { display:flex; align-items:center; gap:12px; }
+  .bsky-avatar { width:44px; height:44px; border-radius:50%; border:2px solid var(--accent2); object-fit:cover; }
+  .bsky-handle { font-family:'Barlow Condensed',sans-serif; }
+  .bsky-display-name { font-size:18px; font-weight:700; color:var(--text); letter-spacing:.02em; }
+  .bsky-at { font-size:13px; color:var(--accent2); letter-spacing:.03em; }
+  .bsky-desc { font-size:13px; color:var(--muted); margin-top:2px; line-height:1.4; max-width:420px; }
+  .bsky-post { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; transition:border-color .2s; }
+  .bsky-post:hover { border-color:rgba(100,180,255,.3); }
+  .bsky-post-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .bsky-post-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+  .bsky-post-meta { min-width:0; }
+  .bsky-post-name { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; color:var(--text); }
+  .bsky-post-time { font-family:'Barlow Condensed',sans-serif; font-size:12px; color:var(--muted); }
+  .bsky-post-text { font-size:15px; line-height:1.55; color:var(--text); white-space:pre-wrap; word-break:break-word; }
+  .bsky-post-text a { color:var(--accent2); text-decoration:none; }
+  .bsky-post-text a:hover { text-decoration:underline; }
+  .bsky-post-img { margin-top:10px; border-radius:8px; width:100%; max-height:320px; object-fit:cover; border:1px solid var(--border); }
+  .bsky-post-footer { display:flex; gap:18px; margin-top:10px; }
+  .bsky-stat { font-family:'Barlow Condensed',sans-serif; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  .bsky-stat span { color:var(--text); font-weight:700; }
+  .bsky-link { font-family:'Barlow Condensed',sans-serif; font-size:13px; color:var(--accent2); text-decoration:none; margin-left:auto; letter-spacing:.03em; }
+  .bsky-link:hover { text-decoration:underline; }
+  .bsky-loading { text-align:center; padding:40px; color:var(--muted); font-family:'Barlow Condensed',sans-serif; font-size:16px; letter-spacing:.05em; }
+  .bsky-error { background:rgba(255,60,60,.08); border:1px solid rgba(255,60,60,.2); border-radius:10px; padding:16px; font-family:'Barlow Condensed',sans-serif; font-size:15px; color:#ff9999; text-align:center; }
+  .bsky-refresh-bar { display:flex; align-items:center; gap:10px; }
+  .bsky-auto { font-family:'Barlow Condensed',sans-serif; font-size:13px; color:var(--muted); }
+  .dong-highlight { background:rgba(255,140,0,.08); border-color:rgba(255,140,0,.35) !important; }
+  .dong-highlight .bsky-post-text { } 
+  .dong-pill { display:inline-block; background:rgba(255,140,0,.15); color:var(--accent2); font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:.1em; padding:2px 8px; border-radius:20px; margin-bottom:6px; border:1px solid rgba(255,140,0,.3); }
 </style>
 </head>
 <body>
@@ -226,6 +259,7 @@
     <button class="tab active" onclick="showTab('leaderboard',this)">🏆 Standings</button>
     <button class="tab" onclick="showTab('longest',this)">💣 Longest Dongs</button>
     <button class="tab" onclick="showTab('setup',this)">⚙️ Draft Setup</button>
+    <button class="tab" onclick="showTab('bsky',this)">🦋 Would It Dong?</button>
   </div>
 
   <!-- STANDINGS -->
@@ -256,6 +290,28 @@
     </div>
     <div class="dupe-warning" id="dupeWarning"></div>
     <div class="setup-grid" id="setupGrid"></div>
+  </div>
+
+  <!-- WOULD IT DONG - BLUESKY FEED -->
+  <div id="tab-bsky" style="display:none">
+    <div class="bsky-header">
+      <div class="bsky-profile">
+        <img class="bsky-avatar" id="bskyAvatar" src="" alt="avatar" onerror="this.style.display='none'">
+        <div class="bsky-handle">
+          <div class="bsky-display-name" id="bskyDisplayName">Would It Dong Again?</div>
+          <div class="bsky-at">@woulditdongagain.bsky.social</div>
+          <div class="bsky-desc" id="bskyDesc"></div>
+        </div>
+      </div>
+      <div class="bsky-refresh-bar">
+        <div class="bsky-auto" id="bskyLastFetch"></div>
+        <button class="primary" onclick="fetchBskyFeed(true)" style="font-size:13px;padding:7px 14px">🔄 Refresh</button>
+        <a class="bsky-link" href="https://bsky.app/profile/woulditdongagain.bsky.social" target="_blank">Open on Bluesky ↗</a>
+      </div>
+    </div>
+    <div class="bsky-feed" id="bskyFeed">
+      <div class="bsky-loading"><span class="spinner"></span> Loading feed…</div>
+    </div>
   </div>
 </div>
 
@@ -312,7 +368,7 @@ function loadState() {
 function saveState() { localStorage.setItem('mdh_v4', JSON.stringify(state)); }
 
 let state = loadState() || {
-  players: Array.from({length:10}, (_,i) => ({name:`Hunter ${i+1}`, teams:['','','']})),
+  players: Array.from({length:6}, (_,i) => ({name:`Hunter ${i+1}`, teams:['','','','']})),
   currentPeriod: defaultPeriodId(),
   hrCache: {},       // "TeamName|periodId|year" -> count
   dongCache: {},     // "dong|TeamName|periodId|year" -> [{dist, player, date}]
@@ -468,13 +524,14 @@ function updateDateRangeInfo() {
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function showTab(id, btn) {
-  ['leaderboard','longest','setup'].forEach(t => document.getElementById('tab-'+t).style.display='none');
+  ['leaderboard','longest','setup','bsky'].forEach(t => document.getElementById('tab-'+t).style.display='none');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+id).style.display = '';
   btn.classList.add('active');
   if (id==='leaderboard') renderLeaderboard();
   if (id==='longest') renderLongestBoard();
   if (id==='setup') renderSetup();
+  if (id==='bsky' && !bskyLoaded) fetchBskyFeed(false);
 }
 
 function onMonthChange() {
@@ -744,11 +801,11 @@ function renderSetup() {
       </div>
       <input type="text" placeholder="Hunter name" value="${p.name||''}" id="pname-${i}" />
       <div class="team-selects">
-        ${[0,1,2].map(j=>`<select id="pt-${i}-${j}" onchange="checkDupes()"><option value="">— Team ${j+1} —</option>${opts}</select>`).join('')}
+        ${[0,1,2,3].map(j=>`<select id="pt-${i}-${j}" onchange="checkDupes()"><option value="">— Team ${j+1} —</option>${opts}</select>`).join('')}
       </div>
     </div>`).join('');
 
-  state.players.forEach((p,i)=>[0,1,2].forEach(j=>{
+  state.players.forEach((p,i)=>[0,1,2,3].forEach(j=>{
     const el=document.getElementById(`pt-${i}-${j}`);
     if (el&&p.teams&&p.teams[j]&&p.teams[j].trim()) el.value=p.teams[j].trim();
   }));
@@ -757,27 +814,165 @@ function renderSetup() {
 
 function checkDupes() {
   const picks=[];
-  for(let i=0;i<10;i++) for(let j=0;j<3;j++){const el=document.getElementById(`pt-${i}-${j}`); if(el&&el.value) picks.push({i,j,v:el.value});}
+  for(let i=0;i<6;i++) for(let j=0;j<4;j++){const el=document.getElementById(`pt-${i}-${j}`); if(el&&el.value) picks.push({i,j,v:el.value});}
   const counts={};
   picks.forEach(p=>{counts[p.v]=(counts[p.v]||0)+1;});
   const dupes=Object.entries(counts).filter(([,c])=>c>1).map(([t])=>t);
-  for(let i=0;i<10;i++) for(let j=0;j<3;j++){const el=document.getElementById(`pt-${i}-${j}`); if(!el) continue; el.style.borderColor=el.value&&dupes.includes(el.value)?'var(--accent)':'';}
+  for(let i=0;i<6;i++) for(let j=0;j<4;j++){const el=document.getElementById(`pt-${i}-${j}`); if(!el) continue; el.style.borderColor=el.value&&dupes.includes(el.value)?'var(--accent)':'';}
   document.getElementById('dupeWarning').innerHTML=dupes.length?`⚠️ Duplicate picks: ${dupes.join(', ')}`:'';
 }
 
 function saveSetup() {
   const allPicks=[];
-  for(let i=0;i<10;i++) for(let j=0;j<3;j++){const v=document.getElementById(`pt-${i}-${j}`)?.value; if(v) allPicks.push(v);}
+  for(let i=0;i<6;i++) for(let j=0;j<4;j++){const v=document.getElementById(`pt-${i}-${j}`)?.value; if(v) allPicks.push(v);}
   const dupes=[...new Set(allPicks.filter((v,i,a)=>a.indexOf(v)!==i))];
   if(dupes.length){alert('Fix duplicate teams first:\n'+dupes.join(', ')); return;}
-  state.players=Array.from({length:10},(_,i)=>({
+  state.players=Array.from({length:6},(_,i)=>({
     name:document.getElementById(`pname-${i}`)?.value?.trim()||`Hunter ${i+1}`,
-    teams:[0,1,2].map(j=>document.getElementById(`pt-${i}-${j}`)?.value||'')
+    teams:[0,1,2,3].map(j=>document.getElementById(`pt-${i}-${j}`)?.value||'')
   }));
   saveState();
   jbPush().then(()=>updateCloudIndicator());
   showTab('leaderboard', document.querySelector('.tab'));
   setTimeout(fetchAllData, 150);
+}
+
+
+// ── BLUESKY FEED ──────────────────────────────────────────────────────────────
+const BSKY_HANDLE = 'woulditdongagain.bsky.social';
+const BSKY_API    = 'https://public.api.bsky.app/xrpc';
+let bskyLoaded    = false;
+let bskyAutoTimer = null;
+
+async function fetchBskyFeed(manual = false) {
+  const feedEl = document.getElementById('bskyFeed');
+  if (!manual && bskyLoaded) return;
+  if (manual) feedEl.innerHTML = '<div class="bsky-loading"><span class="spinner"></span> Refreshing…</div>';
+
+  try {
+    // Fetch profile
+    const profileRes = await fetch(`${BSKY_API}/app.bsky.actor.getProfile?actor=${encodeURIComponent(BSKY_HANDLE)}`);
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      const avatarEl = document.getElementById('bskyAvatar');
+      if (profile.avatar) { avatarEl.src = profile.avatar; avatarEl.style.display = ''; }
+      const dn = document.getElementById('bskyDisplayName');
+      if (profile.displayName) dn.textContent = profile.displayName;
+      const desc = document.getElementById('bskyDesc');
+      if (profile.description) desc.textContent = profile.description.slice(0, 120) + (profile.description.length > 120 ? '…' : '');
+    }
+
+    // Fetch posts
+    const feedRes = await fetch(`${BSKY_API}/app.bsky.feed.getAuthorFeed?actor=${encodeURIComponent(BSKY_HANDLE)}&limit=25&filter=posts_no_replies`);
+    if (!feedRes.ok) throw new Error(`Bluesky API error ${feedRes.status}`);
+    const data = await feedRes.json();
+    const posts = (data.feed || []).filter(item => !item.reply); // top-level only
+
+    if (posts.length === 0) {
+      feedEl.innerHTML = '<div class="bsky-loading">No posts found yet.</div>';
+      return;
+    }
+
+    feedEl.innerHTML = posts.map(item => renderBskyPost(item.post)).join('');
+    bskyLoaded = true;
+
+    const now = new Date();
+    document.getElementById('bskyLastFetch').textContent = `Updated ${now.toLocaleTimeString()}`;
+
+    // Auto-refresh every 3 minutes while tab is open
+    clearTimeout(bskyAutoTimer);
+    bskyAutoTimer = setTimeout(() => { if (bskyLoaded) fetchBskyFeed(true); }, 3 * 60 * 1000);
+
+  } catch(e) {
+    feedEl.innerHTML = `<div class="bsky-error">⚠️ Could not load Bluesky feed: ${e.message}<br><br>
+      <a href="https://bsky.app/profile/${BSKY_HANDLE}" target="_blank" style="color:var(--accent2)">View directly on Bluesky ↗</a></div>`;
+  }
+}
+
+function renderBskyPost(post) {
+  const record   = post.record || {};
+  const author   = post.author || {};
+  const text     = record.text || '';
+  const time     = record.createdAt ? new Date(record.createdAt) : null;
+  const timeStr  = time ? time.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+  const postUrl  = bskyPostUrl(post.uri, author.handle);
+  const likes    = post.likeCount || 0;
+  const reposts  = post.repostCount || 0;
+
+  // Highlight posts that seem dong-related
+  const isDong = /dong|home.?run|homer|hr|grand.?slam|would it/i.test(text);
+
+  // Images
+  const images = (post.embed?.images || post.embed?.media?.images || []);
+  const imgHtml = images.slice(0,1).map(img =>
+    `<img class="bsky-post-img" src="${img.fullsize || img.thumb}" alt="${img.alt || ''}" loading="lazy">`
+  ).join('');
+
+  // Linkify text
+  const linkedText = linkifyBsky(text, record.facets || []);
+
+  return `<div class="bsky-post ${isDong ? 'dong-highlight' : ''}">
+    ${isDong ? '<div class="dong-pill">💣 DONG DETECTED</div>' : ''}
+    <div class="bsky-post-header">
+      <img class="bsky-post-avatar" src="${author.avatar || ''}" alt="" onerror="this.style.display='none'">
+      <div class="bsky-post-meta">
+        <div class="bsky-post-name">${author.displayName || author.handle || ''}</div>
+        <div class="bsky-post-time">${timeStr}</div>
+      </div>
+      <a href="${postUrl}" target="_blank" class="bsky-link" style="font-size:12px;margin-left:auto">↗</a>
+    </div>
+    <div class="bsky-post-text">${linkedText}</div>
+    ${imgHtml}
+    <div class="bsky-post-footer">
+      <div class="bsky-stat">❤️ <span>${likes}</span></div>
+      <div class="bsky-stat">🔁 <span>${reposts}</span></div>
+    </div>
+  </div>`;
+}
+
+function bskyPostUrl(uri, handle) {
+  // at://did:plc:xxx/app.bsky.feed.post/RKEY -> bsky.app/profile/handle/post/RKEY
+  if (!uri) return `https://bsky.app/profile/${handle}`;
+  const parts = uri.split('/');
+  const rkey = parts[parts.length - 1];
+  return `https://bsky.app/profile/${handle}/post/${rkey}`;
+}
+
+function linkifyBsky(text, facets) {
+  // Escape HTML first
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (!facets || facets.length === 0) return escaped;
+
+  // Build char-indexed replacements from facets
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(text);
+  const result = [];
+  let pos = 0;
+
+  const sorted = [...facets].sort((a,b) => a.index.byteStart - b.index.byteStart);
+  for (const facet of sorted) {
+    const {byteStart, byteEnd} = facet.index;
+    if (byteStart > pos) {
+      result.push(escapeHtml(new TextDecoder().decode(bytes.slice(pos, byteStart))));
+    }
+    const segment = new TextDecoder().decode(bytes.slice(byteStart, byteEnd));
+    const linkFeature = facet.features?.find(f => f.$type === 'app.bsky.richtext.facet#link');
+    const mentionFeature = facet.features?.find(f => f.$type === 'app.bsky.richtext.facet#mention');
+    if (linkFeature) {
+      result.push(`<a href="${linkFeature.uri}" target="_blank" rel="noopener">${escapeHtml(segment)}</a>`);
+    } else if (mentionFeature) {
+      result.push(`<a href="https://bsky.app/profile/${mentionFeature.did}" target="_blank">${escapeHtml(segment)}</a>`);
+    } else {
+      result.push(escapeHtml(segment));
+    }
+    pos = byteEnd;
+  }
+  if (pos < bytes.length) result.push(escapeHtml(new TextDecoder().decode(bytes.slice(pos))));
+  return result.join('');
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
