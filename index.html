@@ -576,7 +576,7 @@ async function fetchTeamHRs(teamId, startDate, endDate) {
 // ── FETCH: LONGEST HRs VIA STATCAST ──────────────────────────────────────────
 // Baseball Savant CSV endpoint — returns all HRs for a team in date range sorted by distance
 async function fetchTeamLongestHRs(teamId, startDate, endDate) {
-  const url = `https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfPT=&hfAB=home%5C.%5C.run%7C&hfGT=R%7C&hfPR=&hfZ=&hfStadium=&hfBBL=&hfNewZones=&hfPull=&hfC=&hfSea=${YEAR}%7C&hfSit=&player_type=batter&hfOuts=&hfOpponent=&pitcher_throws=&batter_stands=&hfSA=&game_date_gt=${startDate}&game_date_lt=${endDate}&hfMo=&hfTeam=${teamId}%7C&home_road=&hfRO=&position=&hfInfield=&hfOutfield=&hfInn=&hfBBT=&hfFlag=&metric_1=&group_by=name&min_pitches=0&min_results=0&min_pas=0&sort_col=hit_distance_sc&player_event_sort=hit_distance_sc&sort_order=desc&chk_stats_hit_distance_sc=on&chk_stats_player_name=on&type=details`;
+  const url = `https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfAB=home%5C.%5C.run%7C&hfGT=R%7C&hfSea=${YEAR}%7C&player_type=batter&game_date_gt=${startDate}&game_date_lt=${endDate}&hfTeam=${teamId}%7C&sort_col=hit_distance_sc&player_event_sort=hit_distance_sc&sort_order=desc&min_pitches=0&min_results=0&min_pas=0&type=details`;
   const csv = await proxyFetch(url, true);
   return parseStatcastCSV(csv, 3);
 }
@@ -584,21 +584,43 @@ async function fetchTeamLongestHRs(teamId, startDate, endDate) {
 function parseStatcastCSV(csv, limit=3) {
   const lines = csv.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
+
+  // Proper CSV row parser — handles quoted fields containing commas
+  function parseRow(line) {
+    const cols = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuote = !inQuote;
+      } else if (ch === ',' && !inQuote) {
+        cols.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    cols.push(cur.trim());
+    return cols;
+  }
+
+  const headers = parseRow(lines[0]);
   const distIdx = headers.indexOf('hit_distance_sc');
   const nameIdx = headers.indexOf('player_name');
   const dateIdx = headers.indexOf('game_date');
+
   if (distIdx === -1) return [];
 
   const results = [];
-  for (let i=1; i<lines.length && results.length < limit; i++) {
-    const cols = lines[i].split(',').map(c => c.trim().replace(/"/g,''));
+  for (let i = 1; i < lines.length && results.length < limit; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseRow(lines[i]);
     const dist = parseInt(cols[distIdx], 10);
-    if (!dist || isNaN(dist)) continue;
+    if (!dist || isNaN(dist) || dist < 200) continue; // sanity check
     results.push({
       dist,
       player: nameIdx >= 0 ? cols[nameIdx] : 'Unknown',
-      date: dateIdx >= 0 ? cols[dateIdx] : ''
+      date:   dateIdx >= 0 ? cols[dateIdx] : ''
     });
   }
   return results;
